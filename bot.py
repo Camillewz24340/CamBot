@@ -1,6 +1,7 @@
 from platform import platform
 import random
 import re
+from socket import MsgFlag
 import discord
 from discord.ext import tasks
 import os
@@ -8,7 +9,6 @@ import time
 import platform
 from datetime import datetime
 from termcolor import colored as col3
-from colors import Colors
 from utils import botstatus, consoledebug as Debug
 
 botstatus.clear_console_output()
@@ -93,6 +93,12 @@ async def on_message(message):
             return    
 
         await send(file=qrcodemake.makeqr(QRText))
+    
+    if re.match("^cam user", msg):
+        search = message.content.replace("cam user","")
+
+        from commands.discordrelated import userinfo
+        await send(userinfo.main(search, client))
 
     if re.match("^cam pycode ",msg):
         try:
