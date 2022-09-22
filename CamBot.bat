@@ -1,3 +1,3 @@
 ECHO off
 
-python main.py
+python bot.py

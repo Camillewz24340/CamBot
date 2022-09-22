@@ -1,10 +1,19 @@
+from dis import dis
 import discord
+import abc
 
-def main(user, client):
-    u = client.get_user(int(user))
+def main(user):
 
-    if not u:
-        return str(u)
+    info=f"Created at: {user.created_at}\n"
+
+    if not user:
+        return "Oops, an error occured"
+
+    ret = discord.Embed(
+        title=f"{user.name}",
+        description=info,
+        footer="User ID: {user.id}"
+    )
     
 
-    return u
+    return ret
