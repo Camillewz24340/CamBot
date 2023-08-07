@@ -35,46 +35,95 @@ Debug.Info("Uptime started")
 
 startupTime = datetime.now()
 
-upSince = f"{str(startupTime.weekday)} {str(startupTime.day)}/{str(startupTime.month)} at {str(startupTime.hour)}:{str(startupTime.minute)} !"
+day = startupTime.weekday()
 
-def set_status():
+if day == 0:
+    day = "Monday"
+if day == 1:
+    day = "Tuesday"
+if day == 2:
+    day = "Wednesday"
+if day == 3:
+    day = "Thursday"
+if day == 4:
+    day = "Friday"
+if day == 5:
+    day = "Saturday"
+if day == 6:
+    day = "Sunday"
+
+upSince = f"{str(day)} {str(startupTime.day)}/{str(startupTime.month)} at {str(startupTime.hour)}:{str(startupTime.minute)} !"
+
+isStatusCustom = False
+
+async def set_status(s=None):
     status = discord.Status.online
-    if(datetime.now().hour < 8 or datetime.now().hour > 18):
-        status = discord.Status.idle
+    
+    if not isStatusCustom:
+        if(datetime.now().hour < 8 or datetime.now().hour > 18):
+            status = discord.Status.idle
+    else:
+        try:
+            status = s
+        except:
+            status = discord.Status.online
+        await client.change_presence(status=status)
+    
     return status
+
+@tasks.loop(seconds=2)
+async def checkEvents():
+    if open("./states/trayRestart.txt").read() == "1" or open("./states/trayStop.txt").read() == 1:
+        open("./states/isReady.txt", "w").write("0")
+        open("./states/isOnline.txt", "w").write("0")
+        sys.exit(0)
 
 @tasks.loop(seconds=10)
 async def change_activity():
-    activityList = [
-    f"Im up since {upSince} !",
-    "I'm cool !",
-    f"I'm in {str(len(client.guilds))} servers !",
-    f"Today is {datetime.now().day}/{datetime.now().month}/{datetime.now().year}",
-    f"{datetime.now().hour}:{datetime.now().minute}",
-    "Hi ! :D",
-    "cam help"
-    ]
+    if not isStatusCustom:
+        activityList = [
+        f"Im up since {upSince} !",
+        "I'm cool !",
+        f"I'm in {str(len(client.guilds))} servers !",
+        f"Today is {datetime.now().day}/{datetime.now().month}/{datetime.now().year}",
+        f"{datetime.now().hour}:{datetime.now().minute}",
+        "Hi ! :D",
+        "cam help"
+        ]
 
-    await client.change_presence(status=set_status(),activity = discord.Activity(name=activityList[random.randint(0, len(activityList) - 1)],type=1))
+        await client.change_presence(status=await set_status(),activity = discord.Activity(name=activityList[random.randint(0, len(activityList) - 1)],type=1))
+    else:
+        return
 
 Debug.DuringOperation("Connecting to Discord...")
 
 @client.event
 async def on_ready():
+    with open("./states/isReady.txt", "w") as f:
+        f.write("1")
+    with open("./states/isOnline.txt", "w") as f:
+        f.write("1")
     botstatus.clear_console_output()
     Debug.Success(f"Ready, Connected as {client.user} in {str(len(client.guilds))} servers")
     if platform.system() == "Windows":
         os.system("cmd /c title CamBot - Ready")
     
     change_activity.start()
+    checkEvents.start()
 
 @client.event
-async def on_message(message):
+async def on_message(message:discord.Message):
 
     msg = message.content.lower()
     send = message.channel.send
 
     if message.author.id == client.user.id: return
+
+    if re.match("^cam ", msg):
+        if message.channel.guild and message.channel.guild.id != 690177824937476144:
+            if not message.channel.guild.me.guild_permissions.manage_messages and message.author.id != OwnerID:
+                await send("Not activating; missing permissions. Request terminated.")
+                return
 
     if re.match("^cam help", msg):
         
@@ -152,6 +201,9 @@ async def on_message(message):
 
     if re.match("a+u+g+h", msg):
         await send(":weary:_ _") 
+
+    if msg == "cam cum":
+        await send("What do you want you dingus ?!!")
     
     if msg == "afk" or msg == "back" or msg == "im back" or msg == "i'm back":
         await message.add_reaction("👍")
@@ -159,7 +211,10 @@ async def on_message(message):
     if re.match("cam say ", msg):
         txt = msg.replace("cam say ", "")
         if message.author.id == OwnerID:
-            await message.delete()
+            try:
+                await message.delete()
+            except:
+                pass
             await send(txt)
 
     if re.match("^cam space", msg):
@@ -203,13 +258,34 @@ async def on_message(message):
         try: 
             await message.delete()
             await message.channel.purge(limit=1)
-        except: await send("Lemme remove messages 😡😡😡")
+        except: 
+            await send("Lemme remove messages 😡😡😡")
 
     if re.match("cam secretping", msg):
         await message.delete()
         await send("@everyone")
         await message.channel.purge(limit=1)
-        
+
+    if re.match("^cam setstatus ", msg):
+        global isStatusCustom
+        if message.author.id == OwnerID:
+            st = msg.replace("cam setstatus ", "")
+            if st != "none":
+                if st == "online" or st == "1":
+                    isStatusCustom = True
+                    await set_status(discord.Status.online)
+                if st == "invisible" or st == "0" or st == "inv" or st == "offline":
+                    isStatusCustom = True
+                    await set_status(discord.Status.invisible)
+                if st == "idle":
+                    isStatusCustom = True
+                    await set_status(discord.Status.idle)
+                if st == "dnd":
+                    isStatusCustom = True
+                    await set_status(discord.Status.dnd)
+            else:
+                isStatusCustom = False
+                
 
     if msg == "cam lines":
         
@@ -305,6 +381,20 @@ async def on_message(message):
         except discord.errors.HTTPException:
             await send("Empty or too long output :3")
 
+    if re.match("^cam weather now", msg):
+        from commands.science.weather import nowWeather
+
+        newMessage = message.content.replace("cam weather now ", "").replace("\s{2-100}", " ").replace(",", " ")
+
+        await send(embed=await nowWeather(newMessage))
+
+    if re.match("^cam education school", msg) or re.match("^cam edu school", msg):
+            from commands.internet.school import schoolInfo
+
+            newMessage = message.content.replace("cam edu school ", "").replace("cam education school ", "")
+
+            await send(embed=await schoolInfo(newMessage))
+
     if re.match("^cam account create", msg):
         
         from data.data_storage_handlers import money
@@ -380,22 +470,59 @@ async def on_message(message):
         except:
             await send("Invalid usage !")
 
+    
+    
+    if re.match("^cam give ", msg):
+        await send(":+1:")
+
 
 
     if msg == "cam stop":
-        Debug.DuringOperation("Restart Request Detected, checking if owner...")
+        Debug.DuringOperation("Stopping Request Detected, checking if owner...")
         if not message.author.id == OwnerID:
             await send("Nobody can't stop me >:D, except my owner :sweat_smile:")
-            Debug.Error("Author ID doesn\'t match, not restarting")
+            Debug.Error("Author ID doesn\'t match, not stopping")
             return
         Debug.Success("Author ID matches !")
         sentMsg = await send("Ok, i'm stopping !")
         time.sleep(2)
+        try:
+            await message.delete()
+        except:
+            pass
         await sentMsg.delete()
         Debug.DuringOperation("Stopping...")
         if platform.system() == "Windows":
             os.system("cmd /c title CamBot - Stopping")
         time.sleep(1)
+        open("./states/isOnline.txt", "w").write("0")
         sys.exit(0)
+
+    if msg == "cam restart" or msg == "cam rs":
+        Debug.DuringOperation("Restart Request Detected, checking if owner...")
+        if not message.author.id == OwnerID:
+            await send("Nobody can't restart me >:D, except my owner :sweat_smile:")
+            Debug.Error("Author ID doesn\'t match, not restarting")
+            return
+        Debug.Success("Author ID matches !")
+        sentMsg = await send("Ok, i'm restarting !")
+        time.sleep(2)
+        try:
+            await message.delete()
+        except:
+            pass
+        await sentMsg.delete()
+        Debug.DuringOperation("Restarting...")
+        if platform.system() == "Windows":
+            os.system("cmd /c title CamBot - Restarting...")
+        time.sleep(1)
+        open("./states/isOnline.txt", "w").write("0")
+        open("./states/isRestarting.txt", "w").write("1")
+        sys.exit(0)
+
+def exitHandler():
+    open("./states/isOnline.txt", "w").write("0")
+
+atexit.register(exitHandler)
 
 client.run(token.read())

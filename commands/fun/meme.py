@@ -13,8 +13,7 @@ def getMeme():
         embed.title = "Unable to get a meme !"
         print(e)
         return embed
-
-    embed.url = data["postLink"]
+    
     embed.color = 0x003300
     embed.title = data["title"]
     embed.description = f"by [{data['author']}](https://reddit.com/user/{data['author']}) on Reddit"

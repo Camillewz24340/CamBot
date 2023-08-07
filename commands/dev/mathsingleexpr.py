@@ -1,30 +1,29 @@
 import math
+from datetime import datetime
+import time
 import re
 from random import *
 from utils import consoledebug_return as Debug
 from math import *
 
-class InfinityWarning(Warning):
-    pass
-
 def mathsingleexpr(expression, username):
 
-    print(Debug.Info(username + " used math command, expression: " + expression))
+    exit  = None
+    license = None
+    input = None
+    help = None
+    quit = None
+    breakpoint = None
+    repr = None
+    locals = None
 
-    forbiddenWords = ["\"","'",'"',"exec","os","sys", "str", "exit", "eval", "__.+__", "print", "license", "input", "help", "chr", "quit", "breakpoint", "repr", "ascii", "bytes", "forbiddenWords"]
-
-    print("    " + Debug.DuringOperation("Checking expression validity"))
-    
-    for i in range(len(forbiddenWords)):
-
-        print("        " + Debug.DuringOperation("Checking word: " + forbiddenWords[i]))
-
-        if re.search(forbiddenWords[i], expression, flags=re.S):
-                print("        " + Debug.Error("Forbidden word detected: " + forbiddenWords[i] + "\n    Calculation cancelled."))
-                return("A forbidden expression has been entered, please don't start destroying me .-.\nNote: `Strings are not allowed`")
-    
-    print("        " + Debug.Success("Valid expression !"))
-    print("    " + Debug.DuringOperation("Calculating expression"))
+    Cam = {"name":"Camille", "age":None, "mom":"Someone", "dad":"Someone","discord":"@bluecamille", "discordId":660631616074547224}
+    cam = Cam
+    PI = pi
+    pI = pi
+    Pi = pi
+    τ = tau
+    π = pi
 
     try:
         for n in re.finditer("\*\*\d+", expression):
@@ -33,19 +32,18 @@ def mathsingleexpr(expression, username):
 
         result = eval(expression)
 
-        print("        " + Debug.Success("Calculated successfully ! Result: " + str(result)))
+        # print("        " + Debug.Success("Calculated successfully ! Result: " + str(result)))
 
-        if result == -inf or result == inf:
-            raise InfinityWarning
-             
+        if result == inf:
+             result = "inf\n(positive infinity)"
+        if result == -inf:
+             result = "-inf\n(negative infinity)"
+        if isnan(result):
+            result = "nan\n(not a number)"
+
+        print(result)
+                
         return result
     
-    except Warning as w:
-         
-        if type(w) == InfinityWarning:
-            return ("Warning: The result of your expression is positive or negative infinity\nToo large numbers may trigger this warning")
-    
     except Exception as e:
-
-        print("        " + Debug.Error("Error while calculating"))
         return ("An error has occured, please check your expression !\nError: `" + str(type(e)) + ": " + str(e) + "`")
